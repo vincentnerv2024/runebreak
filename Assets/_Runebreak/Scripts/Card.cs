@@ -14,6 +14,7 @@ public class Card : MonoBehaviour
     [SerializeField] private Image frontImage;
     [SerializeField] private Image backImage;
     [SerializeField] private float flipDuration = 0.3f;
+    [SerializeField] private bool preserveAspect = true; // Preserve sprite aspect ratio
     
     public int CardId { get; private set; }
     public bool IsFlipped { get; private set; }
@@ -43,10 +44,16 @@ public class Card : MonoBehaviour
         CardId = id;
         
         if (frontImage != null && frontSprite != null)
+        {
             frontImage.sprite = frontSprite;
+            frontImage.preserveAspect = preserveAspect;
+        }
         
         if (backImage != null && backSprite != null)
+        {
             backImage.sprite = backSprite;
+            backImage.preserveAspect = preserveAspect;
+        }
         
         ResetCard();
     }

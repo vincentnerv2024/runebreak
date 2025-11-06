@@ -14,7 +14,8 @@ public class GridManager : MonoBehaviour
     [SerializeField] private RectTransform gridContainer;
     [SerializeField] private GridLayoutGroup gridLayoutGroup;
     [SerializeField] private float spacing = 10f;
-    [SerializeField] private Vector2 maxCardSize = new Vector2(150f, 200f);
+    [SerializeField] private Vector2 maxCardSize = new Vector2(200f, 200f);
+    [SerializeField] private float cardAspectRatio = 1f; // 1:1 for square cards, 0.75 for 3:4, etc.
     
     [Header("Card Sprites")]
     [SerializeField] private Sprite[] cardFrontSprites;
@@ -72,24 +73,51 @@ public class GridManager : MonoBehaviour
         gridLayoutGroup.constraintCount = columns;
         gridLayoutGroup.spacing = new Vector2(spacing, spacing);
         
-        // Calculate optimal card size
+        // Calculate optimal card size based on available space
         RectTransform containerRect = gridContainer;
-        float availableWidth = containerRect.rect.width - (columns - 1) * spacing;
-        float availableHeight = containerRect.rect.height - (rows - 1) * spacing;
+        float availableWidth = containerRect.rect.width - (columns + 1) * spacing;
+        float availableHeight = containerRect.rect.height - (rows + 1) * spacing;
         
-        float cardWidth = Mathf.Min(availableWidth / columns, maxCardSize.x);
-        float cardHeight = Mathf.Min(availableHeight / rows, maxCardSize.y);
+        // Calculate maximum possible card dimensions
+        float maxWidthPerCard = availableWidth / columns;
+        float maxHeightPerCard = availableHeight / rows;
         
-        // Keep aspect ratio (3:4 is typical for cards)
-        float aspectRatio = 0.75f;
-        if (cardWidth / cardHeight > aspectRatio)
+        float cardWidth;
+        float cardHeight;
+        
+        // Maintain aspect ratio while fitting in available space
+        if (cardAspectRatio > 0)
         {
-            cardWidth = cardHeight * aspectRatio;
+            // Calculate size constrained by width
+            float widthConstrainedWidth = maxWidthPerCard;
+            float widthConstrainedHeight = widthConstrainedWidth / cardAspectRatio;
+            
+            // Calculate size constrained by height
+            float heightConstrainedHeight = maxHeightPerCard;
+            float heightConstrainedWidth = heightConstrainedHeight * cardAspectRatio;
+            
+            // Use the smaller size that fits both constraints
+            if (widthConstrainedHeight <= maxHeightPerCard)
+            {
+                cardWidth = widthConstrainedWidth;
+                cardHeight = widthConstrainedHeight;
+            }
+            else
+            {
+                cardWidth = heightConstrainedWidth;
+                cardHeight = heightConstrainedHeight;
+            }
         }
         else
         {
-            cardHeight = cardWidth / aspectRatio;
+            // No aspect ratio constraint - fill available space
+            cardWidth = maxWidthPerCard;
+            cardHeight = maxHeightPerCard;
         }
+        
+        // Clamp to max card size
+        cardWidth = Mathf.Min(cardWidth, maxCardSize.x);
+        cardHeight = Mathf.Min(cardHeight, maxCardSize.y);
         
         gridLayoutGroup.cellSize = new Vector2(cardWidth, cardHeight);
         
