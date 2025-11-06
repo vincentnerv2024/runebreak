@@ -1,15 +1,18 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System;
 using System.Collections;
 
 /// <summary>
 /// Represents a single card in the memory game with flip animations and state management
+/// UI-based implementation using Image components
 /// </summary>
+[RequireComponent(typeof(Button))]
 public class Card : MonoBehaviour
 {
     [Header("Card Settings")]
-    [SerializeField] private SpriteRenderer frontSprite;
-    [SerializeField] private SpriteRenderer backSprite;
+    [SerializeField] private Image frontImage;
+    [SerializeField] private Image backImage;
     [SerializeField] private float flipDuration = 0.3f;
     
     public int CardId { get; private set; }
@@ -19,18 +22,31 @@ public class Card : MonoBehaviour
     
     public event Action<Card> OnCardClicked;
     
+    private Button button;
+    private RectTransform rectTransform;
     private Vector3 frontRotation = new Vector3(0, 0, 0);
     private Vector3 backRotation = new Vector3(0, 180, 0);
     
-    public void Initialize(int id, Sprite frontImage, Sprite backImage)
+    private void Awake()
+    {
+        button = GetComponent<Button>();
+        rectTransform = GetComponent<RectTransform>();
+        
+        if (button != null)
+        {
+            button.onClick.AddListener(OnButtonClicked);
+        }
+    }
+    
+    public void Initialize(int id, Sprite frontSprite, Sprite backSprite)
     {
         CardId = id;
         
-        if (frontSprite != null)
-            frontSprite.sprite = frontImage;
+        if (frontImage != null && frontSprite != null)
+            frontImage.sprite = frontSprite;
         
-        if (backSprite != null)
-            backSprite.sprite = backImage;
+        if (backImage != null && backSprite != null)
+            backImage.sprite = backSprite;
         
         ResetCard();
     }
@@ -41,13 +57,17 @@ public class Card : MonoBehaviour
         IsMatched = false;
         IsFlipping = false;
         
-        if (frontSprite != null)
-            frontSprite.enabled = false;
+        if (frontImage != null)
+            frontImage.enabled = false;
         
-        if (backSprite != null)
-            backSprite.enabled = true;
+        if (backImage != null)
+            backImage.enabled = true;
         
-        transform.localRotation = Quaternion.Euler(backRotation);
+        if (rectTransform != null)
+            rectTransform.localRotation = Quaternion.Euler(backRotation);
+        
+        if (button != null)
+            button.interactable = true;
     }
     
     public void Flip(bool showFront, Action onComplete = null)
@@ -62,7 +82,10 @@ public class Card : MonoBehaviour
     {
         IsFlipping = true;
         
-        Vector3 startRotation = transform.localEulerAngles;
+        if (button != null)
+            button.interactable = false;
+        
+        Vector3 startRotation = rectTransform.localEulerAngles;
         Vector3 targetRotation = showFront ? frontRotation : backRotation;
         
         float elapsed = 0f;
@@ -73,16 +96,16 @@ public class Card : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = elapsed / (flipDuration / 2);
             float yRotation = Mathf.Lerp(startRotation.y, startRotation.y + 90, t);
-            transform.localRotation = Quaternion.Euler(0, yRotation, 0);
+            rectTransform.localRotation = Quaternion.Euler(0, yRotation, 0);
             yield return null;
         }
         
-        // Switch sprite visibility at midpoint
-        if (frontSprite != null)
-            frontSprite.enabled = showFront;
+        // Switch image visibility at midpoint
+        if (frontImage != null)
+            frontImage.enabled = showFront;
         
-        if (backSprite != null)
-            backSprite.enabled = !showFront;
+        if (backImage != null)
+            backImage.enabled = !showFront;
         
         // Complete the flip
         elapsed = 0f;
@@ -91,13 +114,16 @@ public class Card : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = elapsed / (flipDuration / 2);
             float yRotation = Mathf.Lerp(startRotation.y + 90, targetRotation.y, t);
-            transform.localRotation = Quaternion.Euler(0, yRotation, 0);
+            rectTransform.localRotation = Quaternion.Euler(0, yRotation, 0);
             yield return null;
         }
         
-        transform.localRotation = Quaternion.Euler(targetRotation);
+        rectTransform.localRotation = Quaternion.Euler(targetRotation);
         IsFlipped = showFront;
         IsFlipping = false;
+        
+        if (!IsMatched && button != null)
+            button.interactable = true;
         
         onComplete?.Invoke();
     }
@@ -105,13 +131,17 @@ public class Card : MonoBehaviour
     public void SetMatched()
     {
         IsMatched = true;
+        
+        if (button != null)
+            button.interactable = false;
+        
         StartCoroutine(MatchedAnimation());
     }
     
     private IEnumerator MatchedAnimation()
     {
         // Simple pulse effect for matched cards
-        Vector3 originalScale = transform.localScale;
+        Vector3 originalScale = rectTransform.localScale;
         float duration = 0.3f;
         float elapsed = 0f;
         
@@ -119,18 +149,26 @@ public class Card : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float scale = 1f + Mathf.Sin(elapsed / duration * Mathf.PI) * 0.2f;
-            transform.localScale = originalScale * scale;
+            rectTransform.localScale = originalScale * scale;
             yield return null;
         }
         
-        transform.localScale = originalScale;
+        rectTransform.localScale = originalScale;
     }
     
-    private void OnMouseDown()
+    private void OnButtonClicked()
     {
         if (!IsFlipping && !IsMatched && !IsFlipped)
         {
             OnCardClicked?.Invoke(this);
+        }
+    }
+    
+    private void OnDestroy()
+    {
+        if (button != null)
+        {
+            button.onClick.RemoveListener(OnButtonClicked);
         }
     }
 }

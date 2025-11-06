@@ -1,17 +1,20 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
 /// Manages the card grid layout with dynamic sizing and positioning
+/// UI-based implementation using GridLayoutGroup for automatic layout
 /// </summary>
 public class GridManager : MonoBehaviour
 {
     [Header("Grid Settings")]
     [SerializeField] private GameObject cardPrefab;
-    [SerializeField] private Transform gridContainer;
-    [SerializeField] private Vector2 padding = new Vector2(0.2f, 0.2f);
-    [SerializeField] private Vector2 displayArea = new Vector2(10f, 10f);
+    [SerializeField] private RectTransform gridContainer;
+    [SerializeField] private GridLayoutGroup gridLayoutGroup;
+    [SerializeField] private float spacing = 10f;
+    [SerializeField] private Vector2 maxCardSize = new Vector2(150f, 200f);
     
     [Header("Card Sprites")]
     [SerializeField] private Sprite[] cardFrontSprites;
@@ -23,6 +26,15 @@ public class GridManager : MonoBehaviour
     
     public int TotalCards => rows * columns;
     public int TotalPairs => TotalCards / 2;
+    
+    private void Awake()
+    {
+        // Get GridLayoutGroup if not assigned
+        if (gridLayoutGroup == null && gridContainer != null)
+        {
+            gridLayoutGroup = gridContainer.GetComponent<GridLayoutGroup>();
+        }
+    }
     
     public void CreateGrid(int gridRows, int gridColumns)
     {
@@ -37,36 +49,52 @@ public class GridManager : MonoBehaviour
             return;
         }
         
-        // Calculate card size and spacing
-        float cardWidth = (displayArea.x - (columns + 1) * padding.x) / columns;
-        float cardHeight = (displayArea.y - (rows + 1) * padding.y) / rows;
-        float cardSize = Mathf.Min(cardWidth, cardHeight);
-        
-        // Calculate starting position (centered)
-        float totalWidth = columns * cardSize + (columns - 1) * padding.x;
-        float totalHeight = rows * cardSize + (rows - 1) * padding.y;
-        float startX = -totalWidth / 2f + cardSize / 2f;
-        float startY = totalHeight / 2f - cardSize / 2f;
+        // Configure GridLayoutGroup
+        ConfigureGridLayout();
         
         // Generate card pairs
         List<int> cardIds = GenerateCardIds();
         
         // Create cards
-        int cardIndex = 0;
-        for (int row = 0; row < rows; row++)
+        for (int i = 0; i < cardIds.Count; i++)
         {
-            for (int col = 0; col < columns; col++)
-            {
-                Vector3 position = new Vector3(
-                    startX + col * (cardSize + padding.x),
-                    startY - row * (cardSize + padding.y),
-                    0
-                );
-                
-                CreateCard(position, cardSize, cardIds[cardIndex]);
-                cardIndex++;
-            }
+            CreateCard(cardIds[i]);
         }
+    }
+    
+    private void ConfigureGridLayout()
+    {
+        if (gridLayoutGroup == null || gridContainer == null)
+            return;
+        
+        // Set constraint to column count
+        gridLayoutGroup.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        gridLayoutGroup.constraintCount = columns;
+        gridLayoutGroup.spacing = new Vector2(spacing, spacing);
+        
+        // Calculate optimal card size
+        RectTransform containerRect = gridContainer;
+        float availableWidth = containerRect.rect.width - (columns - 1) * spacing;
+        float availableHeight = containerRect.rect.height - (rows - 1) * spacing;
+        
+        float cardWidth = Mathf.Min(availableWidth / columns, maxCardSize.x);
+        float cardHeight = Mathf.Min(availableHeight / rows, maxCardSize.y);
+        
+        // Keep aspect ratio (3:4 is typical for cards)
+        float aspectRatio = 0.75f;
+        if (cardWidth / cardHeight > aspectRatio)
+        {
+            cardWidth = cardHeight * aspectRatio;
+        }
+        else
+        {
+            cardHeight = cardWidth / aspectRatio;
+        }
+        
+        gridLayoutGroup.cellSize = new Vector2(cardWidth, cardHeight);
+        
+        // Center alignment
+        gridLayoutGroup.childAlignment = TextAnchor.MiddleCenter;
     }
     
     private List<int> GenerateCardIds()
@@ -81,11 +109,19 @@ public class GridManager : MonoBehaviour
             ids.Add(i);
         }
         
-        // Shuffle
-        return ids.OrderBy(x => Random.value).ToList();
+        // Shuffle using Fisher-Yates algorithm for better randomization
+        for (int i = ids.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            int temp = ids[i];
+            ids[i] = ids[j];
+            ids[j] = temp;
+        }
+        
+        return ids;
     }
     
-    private void CreateCard(Vector3 position, float size, int cardId)
+    private void CreateCard(int cardId)
     {
         if (cardPrefab == null)
         {
@@ -93,14 +129,19 @@ public class GridManager : MonoBehaviour
             return;
         }
         
-        GameObject cardObj = Instantiate(cardPrefab, position, Quaternion.identity, gridContainer);
-        cardObj.transform.localPosition = position;
-        cardObj.transform.localScale = Vector3.one * size;
+        if (gridContainer == null)
+        {
+            Debug.LogError("Grid container is not assigned!");
+            return;
+        }
+        
+        GameObject cardObj = Instantiate(cardPrefab, gridContainer);
         
         Card card = cardObj.GetComponent<Card>();
         if (card == null)
         {
-            card = cardObj.AddComponent<Card>();
+            Debug.LogError("Card prefab must have a Card component!");
+            return;
         }
         
         // Assign sprites
