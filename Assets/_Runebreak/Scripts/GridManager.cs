@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
+using NaughtyAttributes;
+
 
 /// <summary>
 /// Manages the card grid layout with dynamic sizing and positioning
@@ -18,8 +20,8 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float cardAspectRatio = 1f; // 1:1 for square cards, 0.75 for 3:4, etc.
     
     [Header("Card Sprites")]
-    [SerializeField] private Sprite[] cardFrontSprites;
-    [SerializeField] private Sprite cardBackSprite;
+    [SerializeField, ShowAssetPreview] private Sprite[] cardFrontSprites;
+    [SerializeField, ShowAssetPreview] private Sprite cardBackSprite;
     
     private List<Card> cards = new List<Card>();
     private int rows;

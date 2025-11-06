@@ -599,7 +599,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41f426b056a6143179f9a1a8ccafefc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cardPrefab: {fileID: 0}
+  cardPrefab: {fileID: 5296240300493023052, guid: 507172034563a44b3a0b948dcdca1a91,
+    type: 3}
   gridContainer: {fileID: 1699245636}
   gridLayoutGroup: {fileID: 1699245637}
   spacing: 10
@@ -618,7 +619,10 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 3cb65bc2c6d9e466f915893690ad59cb, type: 3}
   - {fileID: 21300000, guid: 2bae2fac377654b5a97b981f59db15f8, type: 3}
   - {fileID: 21300000, guid: 56eada7819d344789a99c5222257f98f, type: 3}
-  cardBackSprite: {fileID: 0}
+  - {fileID: 21300000, guid: d1fdceb187e5547bda0285b5879c8211, type: 3}
+  - {fileID: 21300000, guid: 371850f7324fa49f8990b848744da05e, type: 3}
+  - {fileID: 21300000, guid: b3f5553de6f9043efb20da25ba062cb6, type: 3}
+  cardBackSprite: {fileID: 21300000, guid: 449cfe3ff6bde43a2bdd75c20be89594, type: 3}
 --- !u!4 &837143607
 Transform:
   m_ObjectHideFlags: 0
