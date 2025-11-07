@@ -31,8 +31,7 @@ public class Card : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     
     private Button button;
     private RectTransform rectTransform;
-    private Vector3 frontRotation = new Vector3(0, 0, 0);
-    private Vector3 backRotation = new Vector3(0, 180, 0);
+    private Vector3 originalScale = Vector3.one;
     
     private void Awake()
     {
@@ -41,7 +40,23 @@ public class Card : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         
         if (button != null)
         {
+            if (button.targetGraphic == null)
+            {
+                Image hitArea = GetComponent<Image>();
+                if (hitArea == null)
+                {
+                    hitArea = gameObject.AddComponent<Image>();
+                    hitArea.color = new Color(1f, 1f, 1f, 0f);
+                }
+                hitArea.raycastTarget = true;
+                button.targetGraphic = hitArea;
+            }
+
             button.onClick.AddListener(OnButtonClicked);
+        }
+        if (rectTransform != null)
+        {
+            originalScale = rectTransform.localScale;
         }
     }
     
@@ -77,7 +92,7 @@ public class Card : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             backImage.enabled = true;
         
         if (rectTransform != null)
-            rectTransform.localRotation = Quaternion.Euler(backRotation);
+            rectTransform.localScale = originalScale;
         
         if (button != null)
             button.interactable = true;
@@ -101,18 +116,15 @@ public class Card : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (button != null)
             button.interactable = false;
         
-        Vector3 startRotation = rectTransform.localEulerAngles;
-        Vector3 targetRotation = showFront ? frontRotation : backRotation;
-        
         float elapsed = 0f;
         
-        // Flip to 90 degrees (edge view)
-        while (elapsed < flipDuration / 2)
+        // Scale to edge (simulate flip)
+        while (elapsed < flipDuration / 2f)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / (flipDuration / 2);
-            float yRotation = Mathf.Lerp(startRotation.y, startRotation.y + 90, t);
-            rectTransform.localRotation = Quaternion.Euler(0, yRotation, 0);
+            float t = Mathf.Clamp01(elapsed / (flipDuration / 2f));
+            float scale = Mathf.Lerp(1f, 0f, t);
+            rectTransform.localScale = new Vector3(scale * originalScale.x, originalScale.y, originalScale.z);
             yield return null;
         }
         
@@ -125,16 +137,16 @@ public class Card : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         
         // Complete the flip
         elapsed = 0f;
-        while (elapsed < flipDuration / 2)
+        while (elapsed < flipDuration / 2f)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / (flipDuration / 2);
-            float yRotation = Mathf.Lerp(startRotation.y + 90, targetRotation.y, t);
-            rectTransform.localRotation = Quaternion.Euler(0, yRotation, 0);
+            float t = Mathf.Clamp01(elapsed / (flipDuration / 2f));
+            float scale = Mathf.Lerp(0f, 1f, t);
+            rectTransform.localScale = new Vector3(scale * originalScale.x, originalScale.y, originalScale.z);
             yield return null;
         }
         
-        rectTransform.localRotation = Quaternion.Euler(targetRotation);
+        rectTransform.localScale = originalScale;
         IsFlipped = showFront;
         IsFlipping = false;
         
@@ -218,6 +230,10 @@ public class Card : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (enableGlowOnHover && !IsFlipped && !IsMatched && !IsFlipping)
         {
             SetGlowActive(true, 0.5f);
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayHoverSound();
+            }
         }
     }
     

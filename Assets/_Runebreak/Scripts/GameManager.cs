@@ -24,6 +24,8 @@ public class GameManager : MonoBehaviour
     private bool isProcessingMatch = false;
     private bool isGameActive = false;
     private float playTime = 0f;
+    private int currentRows;
+    private int currentColumns;
     
     public bool IsGameActive => isGameActive;
     public int RemainingPairs { get; private set; }
@@ -79,6 +81,8 @@ public class GameManager : MonoBehaviour
         flippedCards.Clear();
         isProcessingMatch = false;
         playTime = 0f;
+        currentRows = rows;
+        currentColumns = columns;
         
         if (gridManager != null)
         {
@@ -107,8 +111,10 @@ public class GameManager : MonoBehaviour
         {
             saveLoadManager.DeleteSave();
         }
-        
-        StartNewGame(defaultRows, defaultColumns);
+
+        int rows = currentRows > 0 ? currentRows : defaultRows;
+        int columns = currentColumns > 0 ? currentColumns : defaultColumns;
+        StartNewGame(rows, columns);
     }
     
     private void OnCardClicked(Card card)
@@ -219,8 +225,14 @@ public class GameManager : MonoBehaviour
         {
             gridData = gridManager.GetGridData(),
             scoreData = scoreManager.GetScoreData(),
-            playTime = playTime
+            playTime = playTime,
         };
+
+        if (saveData.gridData != null)
+        {
+            saveData.gridData.rows = currentRows;
+            saveData.gridData.columns = currentColumns;
+        }
         
         saveLoadManager.SaveGame(saveData);
     }
@@ -245,7 +257,9 @@ public class GameManager : MonoBehaviour
         if (gridManager != null && saveData.gridData != null)
         {
             gridManager.LoadGridData(saveData.gridData);
-            
+            currentRows = saveData.gridData.rows;
+            currentColumns = saveData.gridData.columns;
+
             // Calculate remaining pairs
             RemainingPairs = 0;
             List<Card> cards = gridManager.GetAllCards();
